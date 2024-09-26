@@ -20,11 +20,10 @@
                     </div>
                     <!-- Columna para la vista del botón del carrito -->
                     <div class="col-auto">
-                        <button class="btn btn-primary position-relative">
+                        <button @click="toggleCart" class="btn btn-primary position-relative">
                             Carrito
-                            <span
-                                class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                                0
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                {{ cartItemCount }}
                             </span>
                         </button>
                     </div>
@@ -39,23 +38,22 @@
         <main class="container py-4" v-if="!selectedProduct">
             <div class="row justify-content-center">
                 <!-- Ciclo para renderiza cada producto filtrado en una tarjeta -->
-                <!-- v-for="product in filteredProduct" :key="product.id" -->
-                <div class="col">
+                <div v-for="product in filteredProduct" :key="product.id" class="col">
                     <!-- Cada tarjeta tendrá un ancho del 250px y el alto sera del 100% respecto de su contenedor -->
                     <div class="card h-100 bg-secondary text-light" style="width: 250px; margin-top: 25px;">
                         <!-- Cada imagen del producto, con ajuste para que siempre llene el espacio y mantenga la proporción -->
-                        <!-- <img src="producto" alt="producto" class="card-img-top" style="height: 250px; object-fit: cover;"> -->
+                        <img :src="product.image" alt="producto" class="card-img-top" style="height: 250px; object-fit: cover;">
                         <div class="card-body">
                             <!-- Titulo del producto -->
-                            <h5 class="card-title">Producto</h5>
+                            <h5 class="card-title">{{product.name}}</h5>
                             <!-- Descripción del producto -->
-                            <p class="card-text"> Descripcion</p>
+                            <p class="card-text"> {{ product.description }}</p>
                             <div class="d-flex justify-content-between align-item-center">
                                 <!-- Precio del producto -->
-                                <span class="h5 mb-0 text-white">$150</span>
-                                <button class="btn btn-primary">Añadir</button>
+                                <span class="h5 mb-0 text-white">{{ product.price.toFixed(2) }}</span>
+                                <button @click="addToCart" class="btn btn-primary">Añadir</button>
                             </div>
-                            <button class="btn btn-outline-light mt-2">Ver detalles</button>
+                            <button @click="viewProductDetails(product)" class="btn btn-outline-light mt-2">Ver detalles</button>
                         </div>
                     </div>
                 </div>
@@ -69,7 +67,8 @@
                 <div class="col-md-8">
                     <!-- Detalle del producto seleccionado -->
                     <div class="card bg-secondary text-light">
-                        <img src="" alt="" class="card-img-top" style="height: 400px; object-fit: cover;">
+                        <!--  -->
+                        <img :src="selectedProduct.image" :alt="selectedProduct.name" class="card-img-top" style="height: 400px; object-fit: cover;">
                         <div class="card-body">
                             <h3 class="card-title">Producto</h3>
                             <p class="card-text">Descripcion</p>
@@ -82,7 +81,7 @@
             </div>
         </div>
 
-        
+
         <!-- Carrito de compras -->
         <div class="position-fixed top-0 end-0 h-100 bg-dark p-3" style="width: 600px; z-index: 1050;">
             <div class="d-flex justify-content-between align-items-center mb-3">
@@ -132,3 +131,98 @@
         </div>
     </div>
 </template>
+
+
+<script setup>
+import {ref, computed} from 'vue'
+
+ /* Definición de los productos */
+ const products = ref([
+    {
+      id: 1,
+      name: "Wireless Headphones",
+      description: "High-quality wireless headphones with noise cancellation",
+      price: 129.99,
+      image: "https://fastly.picsum.photos/id/758/200/300.jpg?hmac=lQtDVVjQGklGEIBCA-5yXBI3L8zkkeGObzmCi-rUFKo"
+    },
+    {
+      id: 2,
+      name: "Smartphone",
+      description: "Latest model smartphone with advanced camera features",
+      price: 699.99,
+      image: "https://fastly.picsum.photos/id/758/200/300.jpg?hmac=lQtDVVjQGklGEIBCA-5yXBI3L8zkkeGObzmCi-rUFKo"
+    },
+    {
+      id: 3,
+      name: "Laptop",
+      description: "Powerful laptop for work and entertainment",
+      price: 1299.99,
+      image: "https://fastly.picsum.photos/id/758/200/300.jpg?hmac=lQtDVVjQGklGEIBCA-5yXBI3L8zkkeGObzmCi-rUFKo"
+    },
+    {
+      id: 4,
+      name: "Smartwatch",
+      description: "Track your fitness and receive notifications on the go",
+      price: 199.99,
+      image: "https://fastly.picsum.photos/id/758/200/300.jpg?hmac=lQtDVVjQGklGEIBCA-5yXBI3L8zkkeGObzmCi-rUFKo"
+    }
+  ])
+
+//   Reactividad
+
+const cart = ref([]) //Carrito de compras
+const isCartOpen = ref(false) //Estado del carrito (abierto o cerrado)
+const showToast = ref(false) //Estado de la toast ( notificacion)
+const searchTerm = ref("") //Termino de busqueda
+const selectedProduct = ref(null) //Producto seleccionado para ver en detalle
+
+// Filtrado de productos según el termino de busqueda
+
+const filteredProduct = computed(() =>{
+    return products.value.filter(product =>product.name.toLowerCase().includes(searchTerm.value.toLowerCase()))
+})
+
+// Cantidad de productos que hay en el carrito
+const cartItemCount = computed(() => cart.value.reduce((count, item) => count + item.quantity, 0))
+
+// Funcion para añadir productos al carrito
+const addToCart = (product) =>{
+    const existingItem = cart.value.find(item => item.id === product.id)
+    if(existingItem){
+        existingItem.quantity++
+    }else{
+        cart.value.push({...product, quantity: 1})
+    }
+    // Agregamos el valor de showToast
+    showToast.value = true
+    setTimeout(() => {
+        showToast.value = false
+    }, 3000);
+}
+
+// Funcion para poder abrir y cerrar el carrito
+const toggleCart = () =>{
+    isCartOpen.value = !isCartOpen.value
+}
+
+// Funcion para poder actualizar la cantidad de producto en el carrito
+const updateQuantity = (productId, newQuantity) =>{
+    const item = cart.value.find(item => item.id === productId)
+    if(item && newQuantity > 0){
+        item.quantity = newQuantity
+    }else{
+        removeFromCart(productId)
+    }
+}
+
+// Funcion para eliminar un producto del carrito
+const removeFromCart = (productId) =>{
+    cart.value = cart.value.filter(item => item.id !== productId)
+}
+
+// Funcion para ver los detalles del producto
+const viewProduct = (product) =>{
+    selectedProduct.value = product
+}
+
+</script>
